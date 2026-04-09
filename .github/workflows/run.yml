@@ -2,7 +2,7 @@ name: RL Shop Bot
 
 on:
   schedule:
-    - cron: "*/5 20-21 * * *"
+    - cron: "*/5 * * * *"  # co 5 minut (możesz zmienić)
   workflow_dispatch:
 
 jobs:
@@ -10,10 +10,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Install
-        run: pip install requests beautifulsoup4 discord.py
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps
 
       - name: Run bot
         run: python bot.py
