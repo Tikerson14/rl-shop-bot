@@ -1,31 +1,59 @@
-def get_items():
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
+import discord
+from discord import app_commands
+import asyncio
+import os
+from playwright.async_api import async_playwright
 
-    r = requests.get(URL, headers=headers)
-    soup = BeautifulSoup(r.text, "html.parser")
+TOKEN = os.getenv("DISCORD_TOKEN")
+CHANNEL_ID = 1491559995287015565
 
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
+
+
+async def get_items():
     items = []
 
-    cards = soup.find_all("div")
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+        page = await browser.new_page()
 
-    for card in cards:
-        name = card.find("h3")
-        img = card.find("img")
+        await page.goto("https://rlshop.gg")
+        await page.wait_for_timeout(3000)
 
-        if name and img:
-            text = card.get_text()
+        cards = await page.query_selector_all("h3")
 
-            price = "?"
-            for word in text.split():
-                if word.isdigit():
-                    price = word
+        for card in cards[:10]:
+            name = await card.inner_text()
+            items.append(name)
 
-            items.append({
-                "name": name.text.strip(),
-                "price": price,
-                "image": img["src"]
-            })
+        await browser.close()
 
-    return items[:12]
+    return items
+
+
+@tree.command(name="shop", description="Pełny sklep RL")
+async def shop(interaction: discord.Interaction):
+    await interaction.response.defer()
+
+    items = await get_items()
+
+    embed = discord.Embed(
+        title="🛒 Rocket League Shop",
+        color=0x9b59b6
+    )
+
+    for item in items:
+        embed.add_field(name=item, value="💰 sprawdź w sklepie", inline=True)
+
+    await interaction.followup.send(embed=embed)
+
+
+@client.event
+async def on_ready():
+    await tree.sync()
+    print(f"Zalogowano jako {client.user}")
+
+
+client.run(TOKEN)
