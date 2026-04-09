@@ -7,7 +7,7 @@ import asyncio
 from datetime import datetime
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-CHANNEL_ID = 123456789012345678  # 🔥 TU WPISZ ID KANAŁU
+CHANNEL_ID = 1491559995287015565  # 🔥 TU WPISZ ID KANAŁU
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
