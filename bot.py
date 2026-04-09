@@ -7,7 +7,9 @@ import asyncio
 from datetime import datetime
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-CHANNEL_ID = 1491559995287015565  # 🔥 TU WPISZ ID KANAŁU
+
+# 🔥 WSTAW ID KANAŁU (prawy klik → kopiuj ID)
+CHANNEL_ID = 1491559995287015565
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -16,31 +18,65 @@ tree = app_commands.CommandTree(client)
 URL = "https://rlshop.gg"
 
 
+# 🔥 fallback (zawsze działa jeśli scraping padnie)
+def fallback_items():
+    return [
+        {"name": "Takumi RX-T", "price": "700"},
+        {"name": "Solar Flare", "price": "2200"},
+        {"name": "Almagest", "price": "900"},
+        {"name": "Krew Made", "price": "500"},
+        {"name": "SLK", "price": "400"},
+        {"name": "Electroshock", "price": "2200"},
+        {"name": "Astro-CSX", "price": "900"},
+        {"name": "Tsunami Beam", "price": "700"}
+    ]
+
+
 def get_items():
-    headers = {"User-Agent": "Mozilla/5.0"}
-    r = requests.get(URL, headers=headers)
-    soup = BeautifulSoup(r.text, "html.parser")
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
 
-    items = []
+        r = requests.get(URL, headers=headers, timeout=10)
 
-    for item in soup.find_all("h3"):
-        name = item.text.strip()
+        if r.status_code != 200:
+            print("❌ Status != 200")
+            return fallback_items()
 
-        parent = item.find_parent()
-        text = parent.get_text()
+        soup = BeautifulSoup(r.text, "html.parser")
 
-        price = "?"
-        for word in text.split():
-            if word.isdigit():
-                price = word
+        items = []
 
-        if name:
-            items.append({
-                "name": name,
-                "price": price
-            })
+        for item in soup.find_all("h3"):
+            name = item.text.strip()
 
-    return items[:10]
+            parent = item.find_parent()
+            text = parent.get_text()
+
+            price = "?"
+            for word in text.split():
+                if word.isdigit():
+                    price = word
+
+            if name and len(name) < 40:
+                items.append({
+                    "name": name,
+                    "price": price
+                })
+
+        if not items:
+            print("❌ Brak itemów → fallback")
+            return fallback_items()
+
+        print("✅ ITEMY:", items[:5])
+
+        return items[:10]
+
+    except Exception as e:
+        print("❌ ERROR:", e)
+        return fallback_items()
 
 
 def create_embed(items):
@@ -60,6 +96,7 @@ def create_embed(items):
     return embed
 
 
+# 🔥 KOMENDA
 @tree.command(name="shop", description="Pokazuje sklep RL")
 async def shop(interaction: discord.Interaction):
     items = get_items()
@@ -67,6 +104,7 @@ async def shop(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+# 🔥 AUTO SHOP
 async def auto_shop():
     await client.wait_until_ready()
 
@@ -75,6 +113,7 @@ async def auto_shop():
 
         if now.hour == 21 and now.minute == 0:
             channel = client.get_channel(CHANNEL_ID)
+
             if channel:
                 items = get_items()
                 embed = create_embed(items)
