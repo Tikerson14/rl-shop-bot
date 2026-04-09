@@ -1,0 +1,16 @@
+name: RL Shop Bot
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install
+        run: pip install requests
+      - name: Run bot
+        run: python bot.py
