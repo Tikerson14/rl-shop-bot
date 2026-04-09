@@ -35,16 +35,23 @@ def send_embed():
                     "name": "Rocket League Shop",
                     "icon_url": "https://rl.insider.gg/images/logos/rlg.png"
                 },
-                "title": "Nowy Item Shop!",
+                "title": "🔥 Nowy Item Shop!",
                 "description": "Kliknij żeby zobaczyć:\nhttps://rlshop.gg",
                 "color": 10181046,
                 "footer": {
-                    "text": "Auto Tracker"
+                    "text": "Auto Tracker PRO"
                 }
             }
         ]
     }
     requests.post(WEBHOOK_URL, json=data)
+
+def commit_file():
+    os.system("git config --global user.name 'bot'")
+    os.system("git config --global user.email 'bot@github.com'")
+    os.system("git add last_shop.txt")
+    os.system("git commit -m 'update shop'")
+    os.system("git push")
 
 def main():
     shop = get_shop()
@@ -55,6 +62,7 @@ def main():
         print("Nowy sklep!")
         send_embed()
         save_last(current_hash)
+        commit_file()
     else:
         print("Brak zmian")
 
