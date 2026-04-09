@@ -2,7 +2,7 @@ name: RL Shop Bot
 
 on:
   schedule:
-    - cron: "0 21 * * *"
+  - cron: "*/5 20-21 * * *"
   workflow_dispatch:
 
 jobs:
