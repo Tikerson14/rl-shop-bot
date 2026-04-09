@@ -5,78 +5,81 @@ from bs4 import BeautifulSoup
 import os
 import asyncio
 from datetime import datetime
+import hashlib
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+CHANNEL_ID = 1491559995287015565  # 🔥 WSTAW ID
 
-# 🔥 WSTAW ID KANAŁU (prawy klik → kopiuj ID)
-CHANNEL_ID = 1491559995287015565
+URL = "https://rlshop.gg"
+LAST_HASH_FILE = "last_shop.txt"
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-URL = "https://rlshop.gg"
 
-
-# 🔥 fallback (zawsze działa jeśli scraping padnie)
 def fallback_items():
     return [
         {"name": "Takumi RX-T", "price": "700"},
         {"name": "Solar Flare", "price": "2200"},
         {"name": "Almagest", "price": "900"},
         {"name": "Krew Made", "price": "500"},
-        {"name": "SLK", "price": "400"},
-        {"name": "Electroshock", "price": "2200"},
-        {"name": "Astro-CSX", "price": "900"},
-        {"name": "Tsunami Beam", "price": "700"}
+        {"name": "SLK", "price": "400"}
     ]
 
 
 def get_items():
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0",
-            "Accept-Language": "en-US,en;q=0.9"
+            "User-Agent": "Mozilla/5.0"
         }
 
         r = requests.get(URL, headers=headers, timeout=10)
-
-        if r.status_code != 200:
-            print("❌ Status != 200")
-            return fallback_items()
-
         soup = BeautifulSoup(r.text, "html.parser")
 
         items = []
 
         for item in soup.find_all("h3"):
             name = item.text.strip()
-
             parent = item.find_parent()
-            text = parent.get_text()
 
+            text = parent.get_text()
             price = "?"
+
             for word in text.split():
                 if word.isdigit():
                     price = word
 
-            if name and len(name) < 40:
+            if name:
                 items.append({
                     "name": name,
                     "price": price
                 })
 
         if not items:
-            print("❌ Brak itemów → fallback")
             return fallback_items()
-
-        print("✅ ITEMY:", items[:5])
 
         return items[:10]
 
-    except Exception as e:
-        print("❌ ERROR:", e)
+    except:
         return fallback_items()
+
+
+def generate_hash(items):
+    text = "".join([i["name"] + i["price"] for i in items])
+    return hashlib.md5(text.encode()).hexdigest()
+
+
+def load_last_hash():
+    if os.path.exists(LAST_HASH_FILE):
+        with open(LAST_HASH_FILE, "r") as f:
+            return f.read()
+    return None
+
+
+def save_hash(h):
+    with open(LAST_HASH_FILE, "w") as f:
+        f.write(h)
 
 
 def create_embed(items):
@@ -88,15 +91,17 @@ def create_embed(items):
 
     for item in items:
         embed.add_field(
-            name=item["name"],
+            name=f"🔥 {item['name']}",
             value=f"💰 {item['price']} credits",
             inline=True
         )
 
+    # 🔥 losowy obrazek (lepszy wygląd)
+    embed.set_image(url="https://rocket-league.com/content/media/items/avatar/2200.png")
+
     return embed
 
 
-# 🔥 KOMENDA
 @tree.command(name="shop", description="Pokazuje sklep RL")
 async def shop(interaction: discord.Interaction):
     items = get_items()
@@ -104,7 +109,7 @@ async def shop(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-# 🔥 AUTO SHOP
+# 🔔 AUTO SHOP (bez spamu)
 async def auto_shop():
     await client.wait_until_ready()
 
@@ -112,16 +117,27 @@ async def auto_shop():
         now = datetime.now()
 
         if now.hour == 21 and now.minute == 0:
-            channel = client.get_channel(CHANNEL_ID)
+            items = get_items()
+            new_hash = generate_hash(items)
+            old_hash = load_last_hash()
 
-            if channel:
-                items = get_items()
-                embed = create_embed(items)
-                await channel.send(embed=embed)
+            if new_hash != old_hash:
+                channel = client.get_channel(CHANNEL_ID)
+
+                if channel:
+                    embed = create_embed(items)
+                    await channel.send("🔥 **NOWY SKLEP!**", embed=embed)
+
+                save_hash(new_hash)
 
             await asyncio.sleep(60)
 
         await asyncio.sleep(10)
+
+
+@tree.command(name="ping", description="Sprawdza bota")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("Pong 🏓")
 
 
 @client.event
