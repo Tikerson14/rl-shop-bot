@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import hashlib
 import os
 
-WEBHOOK_URL = "TU_WKLEJ_WEBHOOK"
+WEBHOOK_URL = "https://discord.com/api/webhooks/1491597296444637204/g8K4to4u2loQb_8JV5tQoARVb3VyxlzadYfF-rcLTNi82qSqFNG1YgWe47UHKByynNkI"
 URL = "https://rlshop.gg"
 FILE = "last_shop.txt"
 
